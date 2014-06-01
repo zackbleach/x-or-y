@@ -74,7 +74,6 @@ def check_params(request):
 
 
 def remove_usernames(tweet):
-    print "removing usernames form: " + str(tweet)
     cleaned_text = ''
     twitter_username_re = re.compile(r'(?<=^|(?<=[^a-zA-Z0-9-_\.]))@([A-Za-z]+'
                                      '[A-Za-z0-9]+)')
