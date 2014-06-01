@@ -106,7 +106,7 @@ def get_random_tweet(user1, user2):
     return random.choice(tweets)
 
 
-@register('/x-or-y/api/',
+@register('/x-or-y/api/get-tweet',
           parameters=[
               ApiParameter(
                   name="user1",
