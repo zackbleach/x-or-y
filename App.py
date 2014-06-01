@@ -1,31 +1,25 @@
-from twitter import Twitter, OAuth, TwitterHTTPError
-
-from flask import Flask
-from flask import request
-from flask import jsonify
-
 import random
-import pylru
 import re
 
+from flask import Flask, request, jsonify
+from twitter import Twitter, OAuth, TwitterHTTPError
+import pylru
+
+from twitterconfig import TwitterConfig
+
 app = Flask(__name__)
-app.debug = True
+app.debug=True
 
-# strip out @mentions and user names (spell checker for user names) ?
+config = TwitterConfig()
+twitter = Twitter(auth=OAuth(config.GetAccessKey(),
+                             config.GetAccessSecret(),
+                             config.GetConsumerKey(),
+                             config.GetConsumerSecret()))
 
-OAUTH_TOKEN = '18120137-S6OHWrpcXSeaD9HdEYTZBM9H0IBx4SVxZfSctVlCj'
-OAUTH_SECRET = '2lLI9wFbo3D3asRuPmUXx5vOXMIWoOwijzUhETmq4XZGk'
-CONSUMER_SECRET = 'qu8NO9wLTF7S42ggR83hiWQMxmc287rB15PRZV6wcIemmiZUiS'
-CONSUMER_KEY = '8sd5ORXMz4cucnqLtrYjf3Mbg'
+tweets_cache = cache = pylru.lrucache(30)
 
-CACHE_SIZE = 30
-tweets_cache = cache = pylru.lrucache(CACHE_SIZE)
-
-TWITTER_USERNAME_RE = re.compile(r'(?<=^|(?<=[^a-zA-Z0-9-_\.]))@([A-Za-z]+'
-                                 '[A-Za-z0-9]+)')
-
-twitter = Twitter(auth=OAuth(OAUTH_TOKEN, OAUTH_SECRET,
-                  CONSUMER_KEY, CONSUMER_SECRET))
+USER1_URL_PARAM = 'user1'
+USER2_URL_PARAM = 'user2'
 
 
 class InvalidUsage(Exception):
@@ -45,9 +39,17 @@ class InvalidUsage(Exception):
         return returned_view
 
 
+@app.errorhandler(InvalidUsage)
+def handle_invalid_usage(error):
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
+
+
 def get_tweets_for_user(user_name):
     try:
-        return twitter.statuses.user_timeline(screen_name=user_name)
+        return twitter.statuses.user_timeline(screen_name=user_name,
+                                              include_rts=False)
     except TwitterHTTPError as twitter_error:
         error_message = 'Error recieving tweets for user: %s' % user_name
         error_code = twitter_error.e.code
@@ -65,39 +67,42 @@ def get_tweets_from_cache(user):
 
 
 def check_params(request):
-    user1 = request.args.get('user1')
-    user2 = request.args.get('user2')
+    user1 = request.args.get(USER1_URL_PARAM)
+    user2 = request.args.get(USER2_URL_PARAM)
     if not user1 or not user2:
         raise InvalidUsage('''You must specify user1 and user2 url params''')
 
 
-@app.errorhandler(InvalidUsage)
-def handle_invalid_usage(error):
-    response = jsonify(error.to_dict())
-    response.status_code = error.status_code
-    return response
+def remove_usernames(tweet):
+    print "removing usernames form: " + str(tweet)
+    cleaned_text = ''
+    twitter_username_re = re.compile(r'(?<=^|(?<=[^a-zA-Z0-9-_\.]))@([A-Za-z]+'
+                                     '[A-Za-z0-9]+)')
+    for s in tweet['text'].split(" "):
+        if re.search(twitter_username_re, s):
+            s = '@[redacted]'
+        cleaned_text += s + ' '
+    tweet['text'] = cleaned_text
+    return tweet
+
+
+def get_random_tweet(user1, user2):
+    tweets = []
+    tweets.extend(get_tweets_from_cache(user1))
+    tweets.extend(get_tweets_from_cache(user2))
+    return random.choice(tweets)
 
 
 @app.route('/')
 def main():
     check_params(request)
-    user_one = request.args.get('user1')
-    user_two = request.args.get('user2')
-    user_one_tweets = get_tweets_from_cache(user_one)
-    user_two_tweets = get_tweets_from_cache(user_two)
-    tweets = []
-    tweets.append(random.choice(user_one_tweets)['text'])
-    tweets.append(random.choice(user_two_tweets)['text'])
-    randNo = random.randint(0, 1)
-    tweet = tweets[randNo]
-    new_tweet = ''
-    for s in tweet.split(" "):
-        if s.startswith("RT"):
-            continue
-        if re.search(TWITTER_USERNAME_RE, s):
-            s = '@[redacted]'
-        new_tweet += s + ' '
-    return jsonify(tweet=new_tweet, user_id=str(randNo+1))
+    user1 = request.args.get(USER1_URL_PARAM)
+    user2 = request.args.get(USER2_URL_PARAM)
+    
+    tweet = get_random_tweet(user1, user2)
+    tweet = remove_usernames(tweet)
+  
+    return jsonify(tweet=tweet['text'], user=tweet['user']['screen_name'])
 
 if __name__ == '__main__':
     app.run()
