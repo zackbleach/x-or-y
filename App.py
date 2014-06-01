@@ -7,28 +7,29 @@ from twitter import Twitter, OAuth, TwitterHTTPError
 import pylru
 from flask_cors import cross_origin
 
-from twitterconfig import TwitterConfig
+from config import Config
 
 app = Flask(__name__)
 
-registry = SwaggerApiRegistry(
-    app,
-    baseurl="http://localhost:5000/api",
-    api_version="1.0",
-    api_descriptions={"x-or-y": "Simple Twitter Game"})
-register = registry.register
-registerModel = registry.registerModel
+config = Config()
 
-config = TwitterConfig()
 twitter = Twitter(auth=OAuth(config.GetAccessKey(),
                              config.GetAccessSecret(),
                              config.GetConsumerKey(),
                              config.GetConsumerSecret()))
 
-tweets_cache = cache = pylru.lrucache(30)
+registry = SwaggerApiRegistry(
+    app,
+    baseurl=config.GetBaseUrl(),
+    api_version="1.0",
+    api_descriptions={"x-or-y": "Simple Twitter Game"})
+register = registry.register
+registerModel = registry.registerModel
 
 USER1_URL_PARAM = 'user1'
 USER2_URL_PARAM = 'user2'
+
+tweets_cache = cache = pylru.lrucache(30)
 
 
 class InvalidUsage(Exception):
@@ -105,7 +106,7 @@ def get_random_tweet(user1, user2):
     return random.choice(tweets)
 
 
-@register('/api/xory',
+@register('/x-or-y/api/xory/',
           parameters=[
               ApiParameter(
                   name="user1",
