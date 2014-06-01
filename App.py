@@ -1,14 +1,23 @@
 import random
-import re
 
+import re
 from flask import Flask, request, jsonify
+from flask_sillywalk import SwaggerApiRegistry, ApiParameter, ApiErrorResponse
 from twitter import Twitter, OAuth, TwitterHTTPError
 import pylru
+from flask_cors import cross_origin
 
 from twitterconfig import TwitterConfig
 
 app = Flask(__name__)
-app.debug=True
+
+registry = SwaggerApiRegistry(
+    app,
+    baseurl="http://localhost:5000/api",
+    api_version="1.0",
+    api_descriptions={"x-or-y": "Simple Twitter Game"})
+register = registry.register
+registerModel = registry.registerModel
 
 config = TwitterConfig()
 twitter = Twitter(auth=OAuth(config.GetAccessKey(),
@@ -73,14 +82,18 @@ def check_params(request):
         raise InvalidUsage('''You must specify user1 and user2 url params''')
 
 
-def remove_usernames(tweet):
-    cleaned_text = ''
+def is_user_name(word):
     twitter_username_re = re.compile(r'(?<=^|(?<=[^a-zA-Z0-9-_\.]))@([A-Za-z]+'
                                      '[A-Za-z0-9]+)')
-    for s in tweet['text'].split(" "):
-        if re.search(twitter_username_re, s):
-            s = '@[redacted]'
-        cleaned_text += s + ' '
+    return re.search(twitter_username_re, word)
+
+
+def remove_usernames(tweet):
+    cleaned_text = ''
+    for word in tweet['text'].split(" "):
+        if is_user_name(word):
+            word = '@[redacted]'
+        cleaned_text += word + ' '
     tweet['text'] = cleaned_text
     return tweet
 
@@ -92,15 +105,26 @@ def get_random_tweet(user1, user2):
     return random.choice(tweets)
 
 
-@app.route('/')
+@register('/api/xory',
+          parameters=[
+              ApiParameter(
+                  name="user1",
+                  description="First user",
+                  required=True,
+                  dataType="str",
+                  paramType="query",
+                  allowMultiple=False)
+              ],
+          responseMessages=[
+              ApiErrorResponse(401, "Bad Auth")
+              ])
+@cross_origin()
 def main():
     check_params(request)
     user1 = request.args.get(USER1_URL_PARAM)
     user2 = request.args.get(USER2_URL_PARAM)
-    
     tweet = get_random_tweet(user1, user2)
     tweet = remove_usernames(tweet)
-  
     return jsonify(tweet=tweet['text'], user=tweet['user']['screen_name'])
 
 if __name__ == '__main__':
