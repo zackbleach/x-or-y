@@ -125,7 +125,8 @@ def get_random_tweet(user1, user2):
                   allowMultiple=False)
               ],
           responseMessages=[
-              ApiErrorResponse(401, "Bad Auth")
+              ApiErrorResponse(400, "Could not collect tweets from user"),
+              ApiErrorResponse(401, "Could not log in to Twitter: bad auth")
               ])
 @cross_origin()
 def main():
