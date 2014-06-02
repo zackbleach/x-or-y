@@ -111,7 +111,14 @@ def get_random_tweet(user1, user2):
           parameters=[
               ApiParameter(
                   name="user1",
-                  description="First user",
+                  description="First user to collect random tweets from",
+                  required=True,
+                  dataType="str",
+                  paramType="query",
+                  allowMultiple=False),
+              ApiParameter(
+                  name="user2",
+                  description="Second user to collect random tweets from",
                   required=True,
                   dataType="str",
                   paramType="query",
