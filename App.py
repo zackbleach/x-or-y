@@ -142,7 +142,7 @@ def check_answer():
     print 'getting answer'
     content = request.json
     print content
-    tweet = request.json['tweet']
+    tweet = request.json['tweetId']
     print tweet
     user = user_tweet_cache[tweet]
     print 'got user: ' + user
