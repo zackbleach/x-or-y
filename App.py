@@ -1,16 +1,17 @@
+import hashlib
 import random
-
 import re
-from flask import Flask, request, jsonify
+
+from flask import Flask, request
+from flask.ext.jsonpify import jsonify
 from flask_sillywalk import SwaggerApiRegistry, ApiParameter, ApiErrorResponse
 from twitter import Twitter, OAuth, TwitterHTTPError
 import pylru
-from flask_cors import cross_origin
 
 from config import Config
 
 app = Flask(__name__)
-
+app.debug = True
 config = Config()
 
 twitter = Twitter(auth=OAuth(config.GetAccessKey(),
@@ -29,7 +30,9 @@ registerModel = registry.registerModel
 USER1_URL_PARAM = 'user1'
 USER2_URL_PARAM = 'user2'
 
-tweets_cache = cache = pylru.lrucache(30)
+timeline_cache = pylru.lrucache(1000)
+user_tweet_cache = pylru.lrucache(1000)
+user_cache = pylru.lrucache(1000)
 
 
 class InvalidUsage(Exception):
@@ -58,8 +61,11 @@ def handle_invalid_usage(error):
 
 def get_tweets_for_user(user_name):
     try:
-        return twitter.statuses.user_timeline(screen_name=user_name,
-                                              include_rts=False)
+        timeline = twitter.statuses.user_timeline(screen_name=user_name,
+                                                  include_rts=False)
+        username = timeline[0]['user']['screen_name'].lower()
+        user_cache[username] = timeline[0]['user']
+        return timeline
     except TwitterHTTPError as twitter_error:
         error_message = 'Error recieving tweets for user: %s' % user_name
         error_code = twitter_error.e.code
@@ -67,12 +73,16 @@ def get_tweets_for_user(user_name):
                            status_code=error_code)
 
 
+def get_user(username):
+    return twitter.users.lookup(screen_name=username)
+
+
 def get_tweets_from_cache(user):
-    if user in tweets_cache:
-        return tweets_cache[user]
+    if user in timeline_cache:
+        return timeline_cache[user]
     else:
         tweets = get_tweets_for_user(user)
-        tweets_cache[user] = tweets
+        timeline_cache[user] = tweets
         return tweets
 
 
@@ -106,7 +116,54 @@ def get_random_tweet(user1, user2):
     return random.choice(tweets)
 
 
+@register('/x-or-y/api/answer',
+          method='POST',
+          nickname="I Guess",
+          parameters=[
+              ApiParameter(
+                  name="tweetId",
+                  description="ID of tweet to guess answer for",
+                  required=True,
+                  dataType="str",
+                  paramType="form",
+                  allowMultiple=False),
+              ApiParameter(
+                  name="answer",
+                  description="User who you think posted the tweet",
+                  required=True,
+                  dataType="str",
+                  paramType="form",
+                  allowMultiple=False)
+              ],
+          responseMessages=[
+              ApiErrorResponse(401, "Could not log in to Twitter: bad auth")
+              ])
+def check_answer():
+    print 'getting answer'
+    content = request.json
+    print content
+    tweet = request.json['tweet']
+    print tweet
+    user = user_tweet_cache[tweet]
+    print 'got user: ' + user
+    if not tweet:
+        print 'not tweet'
+        raise InvalidUsage("Tweet does not exist",
+                           status_code=400)
+    answer = request.json['answer']
+    print 'got answer: ' + answer
+    correct = False
+    if (answer == user):
+        print 'correct'
+        correct = True
+    else:
+        print 'incorrect'
+    return jsonify(id=tweet, answer=answer,
+                   correct=correct)
+
+
 @register('/x-or-y/api/get-tweet',
+          method='GET',
           nickname="I Guess",
           parameters=[
               ApiParameter(
@@ -128,14 +185,21 @@ def get_random_tweet(user1, user2):
               ApiErrorResponse(400, "Could not collect tweets from user"),
               ApiErrorResponse(401, "Could not log in to Twitter: bad auth")
               ])
-@cross_origin()
 def main():
     check_params(request)
     user1 = request.args.get(USER1_URL_PARAM)
     user2 = request.args.get(USER2_URL_PARAM)
     tweet = get_random_tweet(user1, user2)
+    tweet_user = tweet['user']['screen_name'].lower()
     tweet = remove_usernames(tweet)
-    return jsonify(tweet=tweet['text'], user=tweet['user']['screen_name'])
+    md5 = hashlib.md5()
+    md5.update(tweet_user+tweet['text'])
+    tweet_id = md5.hexdigest()
+    user_tweet_cache[tweet_id] = tweet_user
+    userOne = user_cache[user1.lower()]
+    userTwo = user_cache[user2.lower()]
+    return jsonify(tweet=tweet['text'], id=tweet_id,
+                   userOne=userOne, userTwo=userTwo)
 
 if __name__ == '__main__':
     app.run()
