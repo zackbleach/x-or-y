@@ -116,6 +116,28 @@ def get_random_tweet(user1, user2):
     return random.choice(tweets)
 
 
+@register('/x-or-y/api/randomuser',
+          method='GET',
+          nickname="I Guess",
+          parameters=[
+              ApiParameter(
+                  name="user",
+                  description="Your user name",
+                  required=True,
+                  dataType="str",
+                  paramType="query",
+                  allowMultiple=False)],
+          responseMessages=[
+              ApiErrorResponse(400, "Could not collect tweets from user"),
+              ApiErrorResponse(401, "Could not log in to Twitter: bad auth")
+              ])
+def get_random_user():
+    username = request.args.get('user')
+    user = twitter.api.GetUser(username)
+    following = user.GetFollowing()
+    return following
+
+
 @register('/x-or-y/api/answer',
           method='POST',
           nickname="I Guess",
@@ -195,4 +217,4 @@ def main():
                    userOne=userOne, userTwo=userTwo)
 
 if __name__ == '__main__':
-    app.run()
+    USER1_URL_PARAMapp.run()
