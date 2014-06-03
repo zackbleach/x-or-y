@@ -125,14 +125,14 @@ def get_random_tweet(user1, user2):
                   description="ID of tweet to guess answer for",
                   required=True,
                   dataType="str",
-                  paramType="json",
+                  paramType="body",
                   allowMultiple=False),
               ApiParameter(
                   name="answer",
                   description="User who you think posted the tweet",
                   required=True,
                   dataType="str",
-                  paramType="json",
+                  paramType="body",
                   allowMultiple=False)
               ],
           responseMessages=[
@@ -198,7 +198,7 @@ def main():
     user_tweet_cache[tweet_id] = tweet_user
     userOne = user_cache[user1.lower()]
     userTwo = user_cache[user2.lower()]
-    return jsonify(tweet=tweet['text'], id=tweet_id,
+    return jsonify(tweet=tweet, id=tweet_id,
                    userOne=userOne, userTwo=userTwo)
 
 if __name__ == '__main__':
