@@ -124,14 +124,7 @@ def get_random_tweet(user1, user2):
                   name="tweetId",
                   description="ID of tweet to guess answer for",
                   required=True,
-                  dataType="str",
-                  paramType="body",
-                  allowMultiple=False),
-              ApiParameter(
-                  name="answer",
-                  description="User who you think posted the tweet",
-                  required=True,
-                  dataType="str",
+                  dataType="json",
                   paramType="body",
                   allowMultiple=False)
               ],
