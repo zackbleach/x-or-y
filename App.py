@@ -214,7 +214,7 @@ def main():
     userOne = user_cache[user1.lower()]
     userTwo = user_cache[user2.lower()]
     return jsonify(tweet=tweet, id=tweet_id,
-                   userOne=userOne, userTwo=userTwo)
+                   userOne=userOne, userTwo=userTwo, user=tweet_user)
 
 if __name__ == '__main__':
     USER1_URL_PARAMapp.run()
