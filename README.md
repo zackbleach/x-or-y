@@ -18,6 +18,8 @@ An example file is included in this repo.</p>
 <p>I started this project because I wanted to learn about the [Flask microframework](http://flask.pocoo.org/) 
 and Python. I'm still learning lots about both, so any feedback is hugely appreciated.</p>
 
-There's a front end for this written by [@cham](http://twitter.com/cham)! A live version of the app and front end can be found [here](http://x-or-y.zackblea.ch).
+The [front end](https://github.com/cham/x-or-y) for this was written by [@cham](http://twitter.com/cham)! 
+
+A live version of the app can be found [here](http://x-or-y.zackblea.ch).
 
 [Zack Bleach](http://zackblea.ch)
