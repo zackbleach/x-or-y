@@ -7,5 +7,6 @@ Werkzeug==0.9.4
 itsdangerous==0.24
 pylru==1.0.6
 six==1.6.1
+tweepy==2.3.0
 twitter==1.14.3
 wsgiref==0.1.2
