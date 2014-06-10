@@ -119,7 +119,8 @@ def remove_usernames(tweet):
 
 
 def remove_urls(tweet):
-    re.sub(r"(?P<url>https?://[^\s]+)", ' ', tweet)
+    url_re = re.compile(r'(?P<url>https?://[^\s]+)')
+    tweet.text = re.sub(url_re, ' ', tweet.text)
     return tweet
 
 
