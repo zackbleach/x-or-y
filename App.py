@@ -7,6 +7,8 @@ from tweepy import Cursor
 from threading import Thread
 
 from flask import Flask, request
+from flask.ext.runner import Runner
+
 from flask.ext.jsonpify import jsonify
 from flask_sillywalk import SwaggerApiRegistry, ApiParameter, ApiErrorResponse
 import pylru
@@ -17,6 +19,8 @@ app = Flask(__name__)
 app.debug = True
 config = Config()
 
+runner = Runner(app)
+
 auth = tweepy.OAuthHandler(config.GetConsumerKey(), config.GetConsumerSecret())
 auth.set_access_token(config.GetAccessKey(), config.GetAccessSecret())
 
@@ -25,7 +29,7 @@ api = tweepy.API(auth)
 registry = SwaggerApiRegistry(
     app,
     baseurl=config.GetBaseUrl(),
-    api_version="1.0",
+    api_version="2.0",
     api_descriptions={"x-or-y": "Simple Twitter Game"})
 register = registry.register
 registerModel = registry.registerModel
@@ -166,4 +170,4 @@ def get_tweet():
 
 
 if __name__ == '__main__':
-    app.run()
+    runner.run()
