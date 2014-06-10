@@ -118,6 +118,11 @@ def remove_usernames(tweet):
     return tweet
 
 
+def remove_urls(tweet):
+    re.sub(r"(?P<url>https?://[^\s]+)", ' ', tweet)
+    return tweet
+
+
 def get_user_names(request):
     user1 = request.args.get(USER1_URL_PARAM)
     user2 = request.args.get(USER2_URL_PARAM)
@@ -160,6 +165,7 @@ def get_tweet():
     user1, user2 = get_user_names(request)
     tweet = get_random_tweet(user1, user2)
     tweet = remove_usernames(tweet)
+    tweet = remove_urls(tweet)
     user_one = user_cache[user1.lower()]
     user_two = user_cache[user2.lower()]
     return jsonify(id=tweet.id,
