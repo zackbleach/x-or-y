@@ -139,7 +139,7 @@ def get_random_tweet(user1, user2):
     return random.choice(tweets)
 
 
-@register('/api/tweet',
+@register('/tweet',
           method='GET',
           nickname="I Guess",
           parameters=[
